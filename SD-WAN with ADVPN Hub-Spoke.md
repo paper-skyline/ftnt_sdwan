@@ -17,6 +17,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device disable # The hub is not beind a NAT device
+        set network-id 1
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub *This didn't take until after saving and coming back in*
@@ -28,7 +29,7 @@ config vpn ipsec phase1-interface
         set ipv4-netmask 255.255.255.0
         set psksecret <psk>
         [set certificate <signature>] # If using certificates for authentication instead of PSK
-        set network-overlay enable # This was in 4D doc, so questionable
+        set network-overlay enable
     next
     edit "hub-isp2-p1"
         set type dynamic
@@ -36,6 +37,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device disable # The hub is not beind a NAT device
+        set network-id 2
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub
@@ -47,7 +49,7 @@ config vpn ipsec phase1-interface
         set ipv4-netmask 255.255.255.0
         set psksecret <psk>
         [set certificate <signature>] # If using certificates for authentication instead of PSK
-        set network-overlay enable # This was in 4D doc, so questionable
+        set network-overlay enable
     next
 end
 
@@ -152,7 +154,7 @@ config firewall service custom
 end
 ```
 
-### Firewall Address Objects for SD-WAN
+### Firewall Address Objects for SD-WAN Overlay
 
 ```ruby
 config firewall address
@@ -183,7 +185,7 @@ config firewall addrgrp
 end
 ```
 
-### Firewall Policies for SD-WAN
+### Firewall Policies for SD-WAN Spokes
 
 In a production network, you would want to tighten these firewall policies down to necessary services and apply appropriate security profiles.
 
@@ -209,7 +211,7 @@ config firewall policy
         set srcaddr "region-spokes"
         set dstaddr "hub-subnets"
         set schedule "always"
-        set service <svs to allow> # Also take into account any SD-WAN Services and Health Checks
+        set service "ALL" # Also take into account any SD-WAN Services and Health Checks
         set action accept
         set logtraffic all
         # May also want to enable some basic security profiles to inspect traffic coming into Hub from Spokes
@@ -222,7 +224,7 @@ config firewall policy
         set srcaddr "region-spokes"
         set dstaddr "region-spokes"
         set schedule "always"
-        set service all # Spoke should already be controlling what they allow outbound
+        set service "ALL" # Spoke should already be controlling what they allow outbound
         set action accept
         set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
     next
@@ -236,30 +238,42 @@ end
 ```ruby
 config vpn ipsec phase1-interface
     edit "spoke-isp1-p1"
+        set type static
         set interface "wan1"
+        set ike-version 2
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
+        set network-id 1
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # Dynamic routes will be received from the Hub via BGP
         set dpd on-idle
+        set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set auto-discovery-receiver enable # This will allow the spoke to learn ADVPN shortcuts to other spokes sent via the Hub
         set remote-fw <public ipv4 for hub-isp1-p1>
         set psksecret <pwd> # If using psk this should match what is set on the Hub above
+        [set certificate <signature>] # If using certificates for authentication instead of PSK
         [set dpd-retryinterval 5]
+        set network-overlay enable
     next
     edit "spoke-isp2-p1"
+        set typic static
         set interface "wan2"
+        set ike-version 2
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
+        set network-id 2
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # Dynamic routes will be received from the Hub via BGP
         set dpd on-idle
+        set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set auto-discovery-receiver enable # This will allow the spoke to learn ADVPN shortcuts to other spokes sent via the Hub
         set remote-fw <public ipv4 for hub-isp2-p1>
         set psksecret <pwd> # If using psk this should match what is set on the Hub above
+        [set certificate <signature>] # If using certificates for authentication instead of PSK
         [set dpd-retryinterval 5]
+        set network-overlay enable
     next
 end
 
@@ -292,57 +306,6 @@ config system interface
         set type tunnel
         set allowaccess ping
         set remote-ip 169.254.2.253 255.255.255.0
-    next
-end
-```
-
-### BGP Routing
-
-```ruby
-config router bgp
-    set as 65000
-    set ibgp-multipath enable
-    set additional-path enable
-    set additional-path select 4 # This depends on the max number of tunnels between spoke and hub
-    set graceful-restart enable
-    config neighbor
-        edit "169.254.1.253"
-            set advertisement-interval 1
-            set link-down-failover enable
-            set remote-as 65000
-        next
-        edit "169.254.2.253"
-            set advertisement-interval 1
-            set link-down failover enable
-            set remote-as 65000
-        next
-    end
-    config network
-        edit 1
-            set prefix <ipv4 network> # Whatver spoke subnets that you want to advertise; not a summary address or default-route
-        next
-        edit 2
-            set prefix <ipv4 network> # Whatver spoke subnets that you want to advertise; not a summary address or default-route
-        next
-    end
-end
-```
-
-### Firewall Address Objects for SD-WAN
-
-```ruby
-config firewall address
-    edit "spoke-tunnels"
-        set subnet "169.254.1.0 255.255.255.0" "169.254.2.0 255.255.255.0"
-    next
-    edit "hub-subnets"
-        set subnet "10.10.255.0 255.255.255.0" # should match the bgp prefixes advertised to spokes
-    next
-    edit "region-spokes"
-        set subnet <ipv4 network> # should be all spoke subnets within region that could traverse thru hub
-    next
-    edit "spoke-subnets"
-        set subnet <ipv4 network> # should be all the subnets local the spoke
     next
 end
 ```
@@ -419,6 +382,70 @@ config system sdwan
     end
 end
 ```
+
+### BGP Routing
+
+```ruby
+config router bgp
+    set as 65000
+    set ibgp-multipath enable
+    set additional-path enable
+    set additional-path-select 4 # This depends on the max number of tunnels between spoke and hub
+    set graceful-restart enable
+    config neighbor
+        edit "169.254.1.253"
+            set advertisement-interval 1
+            set link-down-failover enable
+            set remote-as 65000
+        next
+        edit "169.254.2.253"
+            set advertisement-interval 1
+            set link-down-failover enable
+            set remote-as 65000
+        next
+    end
+    config network
+        edit 1
+            set prefix <ipv4 network> # Whatver spoke subnets that you want to advertise; not a summary address or default-route
+        next
+        edit 2
+            set prefix <ipv4 network> # Whatver spoke subnets that you want to advertise; not a summary address or default-route
+        next
+    end
+end
+```
+
+### Firewall Address Objects for SD-WAN Overlay
+
+```ruby
+config firewall address
+    edit "spoke-tunnels-isp1"
+        set subnet 169.254.1.0 255.255.255.0
+    next
+    edit "spoke-tunnels-isp2"
+        set subnet 169.254.2.0 255.255.255.0
+    next
+    edit "hub-subnets"
+        set subnet "10.10.255.0 255.255.255.0" # should match the bgp prefixes advertised to spokes
+    next
+    edit "r1-s1" # define a subnet for each spoke in the region
+        set subnet <ipv4 network> 
+    next
+    edit "r1-s2" # define a subnet for each spoke in the region
+        set subnet <ipv4 network>
+    next
+end
+
+config firewall addrgrp
+    edit "spoke-tunnels"
+        set member spoke-tunnels-isp1 spoke-tunnels-isp2
+    next
+    edit "region-spokes" # should be each spoke subnet within region that could traverse thru hub
+        set member r1-s1 r1-s2
+    next
+end
+```
+
 
 ### Firewall Policies for SD-WAN
 
