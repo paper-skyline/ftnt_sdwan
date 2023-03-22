@@ -5,6 +5,8 @@
 
 ## Hub Configuration
 
+This template is written with the assumption that the hub will be a device that has a "wan1" and "wan2" interface and will use both of them for the SD-WAN underlay.
+
 ### IPSEC Configuration
 
 ```ruby
@@ -12,14 +14,14 @@ config vpn ipsec phase1-interface
     edit "hub-isp1-p1"
         set type dynamic
         set interface "wan1"
+        set ike-version 2
         set peertype any
         set net-device disable # The hub is not beind a NAT device
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
-        set add-route disable # We do not want to add spoke routes to the hub
+        set add-route disable # We do not want to add spoke routes to the hub *This didn't take until after saving and coming back in*
         set auto-discovery-sender enable # Hub is going to be sending spokes ADVPN shortcut info
-        set dpd on-demand
-        set ike-version 2
+        set dpd on-demand # only shows on full-config
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set ipv4-start-ip 169.254.1.1 # The tunnel IP endpoint range doesn't need to be advertised in dynamic routing since it's a locally connected interface
         set ipv4-end-ip 169.254.1.250
@@ -31,14 +33,14 @@ config vpn ipsec phase1-interface
     edit "hub-isp2-p1"
         set type dynamic
         set interface "wan2"
+        set ike-version 2
         set peertype any
         set net-device disable # The hub is not beind a NAT device
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub
         set auto-discovery-sender enable # Hub is going to be sending spokes ADVPN shortcut info
-        set dpd on-demand
-        set ike-version 2
+        set dpd on-demand # only shows on full-config
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set ipv4-start-ip 169.254.2.1
         set ipv4-end-ip 169.254.2.250
@@ -80,9 +82,11 @@ config system interface
         set allowaccess ping # may need to enable TWAMP probe-response on this interface for health check
     next
     edit "loopback-hub"
+        set vdom root # This has to be entered for command to take
+        set type loopback
         set ip 10.10.255.1 255.255.255.255 # This should be in the network range advertised by the Hub via BGP
         set allowaccess ping probe-response # probe-response for TWAMP health check, may need to be bound to virtual p1 interface
-        set type loopback
+    next
 end
 ```
 
@@ -135,10 +139,16 @@ end
 
 ```ruby
 config system probe-response
-    set port 0
     set mode twamp
     set security-mode authentication # this may need to be adjusted if not doing control and just default test from spoke
     set password "fortinet" # this password needs to match the spoke client
+end # prompt that the daemon will restart, must click 'y' to continue
+
+config firewall service custom
+    edit "TWAMP"
+        set category "Network Services"
+        set tcp-portrange 8008
+    next
 end
 ```
 
@@ -146,19 +156,36 @@ end
 
 ```ruby
 config firewall address
-    edit "spoke-tunnels"
-        set subnet "169.254.1.0 255.255.255.0" "169.254.2.0 255.255.255.0"
+    edit "spoke-tunnels-isp1"
+        set subnet 169.254.1.0 255.255.255.0
+    next
+    edit "spoke-tunnels-isp2"
+        set subnet 169.254.2.0 255.255.255.0
     next
     edit "hub-subnets"
-        set subnet "10.10.255.0 255.255.255.0" # should match the bgp prefixes advertised to spokes
+        set subnet 10.10.255.0 255.255.255.0 # should match the bgp prefixes advertised to spokes
     next
-    edit "region-spokes"
-        set subnet <ipv4 network> # should be all spoke subnets within region that could traverse thru hub
+    edit "r1-s1" # define a subnet for each spoke in the region
+        set subnet <ipv4 network> 
+    next
+    edit "r1-s2" # define a subnet for each spoke in the region
+        set subnet <ipv4 network>
+    next
+end
+
+config firewall addrgrp
+    edit "spoke-tunnels"
+        set member spoke-tunnels-isp1 spoke-tunnels-isp2
+    next
+    edit "region-spokes" # should be each spoke subnet within region that could traverse thru hub
+        set member r1-s1 r1-s2
     next
 end
 ```
 
 ### Firewall Policies for SD-WAN
+
+In a production network, you would want to tighten these firewall policies down to necessary services and apply appropriate security profiles.
 
 ```ruby
 config firewall policy
@@ -170,7 +197,7 @@ config firewall policy
         set srcaddr "spoke-tunnels"
         set dstaddr "all"
         set schedule "always"
-        set service "ALL_ICMP" "TWAMP" # May have to create a service for TWAMP is there's not a predefined one
+        set service "ALL_ICMP" "TWAMP"
         set action accept
         set logtraffic all # Maybe ok on the hub side since there's no SD-WAN SLA log on this end
     next
@@ -195,7 +222,7 @@ config firewall policy
         set srcaddr "region-spokes"
         set dstaddr "region-spokes"
         set schedule "always"
-        set service "all" # Spoke should already be controlling what they allow outbound
+        set service all # Spoke should already be controlling what they allow outbound
         set action accept
         set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
     next
