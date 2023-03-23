@@ -149,7 +149,8 @@ end # prompt that the daemon will restart, must click 'y' to continue
 config firewall service custom
     edit "TWAMP"
         set category "Network Services"
-        set tcp-portrange 8008
+        set udp-portrange 8008
+        set tcp-portrange 862
     next
 end
 ```
@@ -451,23 +452,11 @@ end
 
 ```ruby
 config firewall policy
-    edit 100 # Not quite sure what rule is need to allow the SD-WAN Health Check outbound, it might be an automatic local-out policy
-        set comment "allow spoke sites to loopback-hub for SD-WAN health check"
-        set name "sdwan_spoke_to_loopback"
-        set srcint "hub-isp1-p1" "hub-isp2-p1"
-        set dstint "loopback-hub"
-        set srcaddr "spoke-tunnels"
-        set dstaddr "all"
-        set schedule "always"
-        set service "ALL_ICMP" "TWAMP" # May have to create a service for TWAMP is there's not a predefined one
-        set action accept
-        set logtraffic all # Maybe ok on the hub side since there's no SD-WAN SLA log on this end
-    next
-    edit 101
+    edit 100
         set comment "allow spoke site to hub subnets"
         set name "sdwan_spoke_to_hub"
         set srcint <int towards core>
-        set dstint "spoke-isp1-p1" "spoke-isp2-p1"
+        set dstint "overlay-vpn"
         set srcaddr "spoke-subnets"
         set dstaddr "hub-subnets"
         set schedule "always"
@@ -476,10 +465,10 @@ config firewall policy
         set logtraffic all
         # May also want to enable some basic security profiles to inspect traffic coming into Hub from Spokes
     next
-    edit 102
+    edit 101
         set comment "allow hub subnets to spoke site"
         set name "sdwan_hub_to_spoke"
-        set srcint "hub-isp1-p1" "hub-isp2-p1"
+        set srcint "overlay-vpn"
         set dstint <int towards core>
         set srcaddr "hub-subnets"
         set dstaddr "spoke-subnets"
@@ -488,11 +477,11 @@ config firewall policy
         set action accept
         set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
     next
-    edit 103
+    edit 102
         set comment "allow spoke to spoke traffic via advpn"
         set name "sdwan_advpn_oubound"
         set srcint <int towards core>
-        set dstint "spoke-isp1-p1" "spoke-isp2-p1"
+        set dstint "overlay-vpn"
         set srcaddr "spoke-subnets"
         set dstaddr "region-spokes"
         set schedule "always"
@@ -500,10 +489,10 @@ config firewall policy
         set action accept
         set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
     next
-    edit 104
+    edit 103
         set comment "allow spoke to spoke traffic via advpn"
         set name "sdwan_advpn_inbound"
-        set srcint "hub-isp1-p1" "hub-isp2-p1"
+        set srcint "overlay-vpn"
         set dstint <int towards core>
         set srcaddr "region-spokes"
         set dstaddr "spoke-subnets"
@@ -514,4 +503,3 @@ config firewall policy
     next
 end
 ```
-
