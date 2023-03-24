@@ -99,6 +99,7 @@ end
 ```ruby
 config router bgp
     set as 65000
+    set router-id <ipv4> # Best practice to set this; by default will take the highest loopback address if not defined
     set ibgp-multipath enable
     set additional-path enable
     set additional-path-select 4 # This depends on the max number of tunnels between spoke and hub
@@ -300,13 +301,11 @@ end
 config system interface
     edit "spoke-isp1-p1"
         set type tunnel
-        set allowaccess ping
-        set remote-ip 169.254.1.254 255.255.255.0
+        set allowaccess ping twamp # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
     next
     edit "spoke-isp2-p1"
         set type tunnel
-        set allowaccess ping
-        set remote-ip 169.254.2.253 255.255.255.0
+        set allowaccess ping twamp # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
     next
 end
 ```
@@ -389,6 +388,7 @@ end
 ```ruby
 config router bgp
     set as 65000
+    set router-id <ipv4> # Best practice to set this; by default will take the highest loopback address if not defined
     set ibgp-multipath enable
     set additional-path enable
     set additional-path-select 4 # This depends on the max number of tunnels between spoke and hub
@@ -457,13 +457,12 @@ config firewall policy
         set name "sdwan_spoke_to_hub"
         set srcint <int towards core>
         set dstint "overlay-vpn"
-        set srcaddr "spoke-subnets"
+        set srcaddr "r1-s1"
         set dstaddr "hub-subnets"
         set schedule "always"
-        set service <svs to allow> # Also take into account any SD-WAN Services and Health Checks
+        set service <svs to allow>
         set action accept
         set logtraffic all
-        # May also want to enable some basic security profiles to inspect traffic coming into Hub from Spokes
     next
     edit 101
         set comment "allow hub subnets to spoke site"
@@ -471,23 +470,23 @@ config firewall policy
         set srcint "overlay-vpn"
         set dstint <int towards core>
         set srcaddr "hub-subnets"
-        set dstaddr "spoke-subnets"
+        set dstaddr "r1-s1"
         set schedule "always"
-        set service "all" # Spoke should already be controlling what they allow outbound
+        set service "ALL"
         set action accept
-        set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
+        set logtraffic all
     next
     edit 102
         set comment "allow spoke to spoke traffic via advpn"
         set name "sdwan_advpn_oubound"
         set srcint <int towards core>
         set dstint "overlay-vpn"
-        set srcaddr "spoke-subnets"
+        set srcaddr "r1-s1"
         set dstaddr "region-spokes"
         set schedule "always"
-        set service "all" # Spoke should already be controlling what they allow outbound
+        set service "ALL"
         set action accept
-        set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
+        set logtraffic all
     next
     edit 103
         set comment "allow spoke to spoke traffic via advpn"
@@ -495,11 +494,11 @@ config firewall policy
         set srcint "overlay-vpn"
         set dstint <int towards core>
         set srcaddr "region-spokes"
-        set dstaddr "spoke-subnets"
+        set dstaddr "r1-s1"
         set schedule "always"
-        set service "all" # Spoke should already be controlling what they allow outbound
+        set service "ALL"
         set action accept
-        set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
+        set logtraffic all
     next
 end
 ```
