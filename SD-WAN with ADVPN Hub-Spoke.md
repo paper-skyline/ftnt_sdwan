@@ -7,6 +7,10 @@
 
 This template is written with the assumption that the hub will be a device that has a "wan1" and "wan2" interface and will use both of them for the SD-WAN underlay.
 
+In this configuration, there is no SD-WAN configuration on the hub. Traffic back to the spoke __should__ traverse the same path in reverse due to stickiness. The better approach is to supplement the hub-spoke approach with BGP community tags where the spoke is tagging its preferred path back to the hub to leverage __and then__ the Hub uses SD-WAN with those tags to select the prefered path to the spoke.
+
+Because you have to remove all configuration references to interfaces __before__ you configure SD-WAN, you should *strongly* consider configuring SD-WAN before continuing onwards on the Hub.
+
 ### IPSEC Configuration
 
 ```ruby
@@ -69,6 +73,8 @@ end
 
 ### VPN Interfaces
 
+In this template, I am using link local addresses for the tunnel interfaces since all iBGP SD-WAN members are considered directly connected interfaces. You can use normal RFC1918 address space instead.
+
 ```ruby
 config system interface
     edit "hub-isp1-p1"
@@ -104,7 +110,7 @@ config router bgp
     set additional-path enable
     set additional-path-select 4 # This depends on the max number of tunnels between spoke and hub
     set graceful-restart enable
-    config neighbor-group
+    config neighbor-group # For greater routing control, you could split the tunnels into two (or more) different neighbor-groups
         edit "spoke-advpn"
             set link-down-failover enable
             set capability-graceful-restart enable
@@ -214,6 +220,7 @@ config firewall policy
         set dstaddr "hub-subnets"
         set schedule "always"
         set service "ALL" # Also take into account any SD-WAN Services and Health Checks
+        set tcp-session-without-syn all # This is necessary on the hubs for cross-FTG sessions in dual-hub or ADVPN; disables stateful inspection on traffic matching this rule.
         set action accept
         set logtraffic all
         # May also want to enable some basic security profiles to inspect traffic coming into Hub from Spokes
@@ -227,6 +234,7 @@ config firewall policy
         set dstaddr "region-spokes"
         set schedule "always"
         set service "ALL" # Spoke should already be controlling what they allow outbound
+        set tcp-session-without-syn all # This is necessary for cross-FTG sessions in dual-hub or ADVPN; disables stateful inspection on traffic matching this rule.
         set action accept
         set logtraffic all # May want to disable this as it could get very noisy and spokes may also be logging already
     next
@@ -297,6 +305,8 @@ end
 
 ### VPN Interfaces
 
+The tunnel interfaces won't display their assigned IP address in the GUI or when running the `get system interface` command, but will show when running the `diag address list` command and in other debugging commands.
+
 ```ruby
 config system interface
     edit "spoke-isp1-p1"
@@ -313,6 +323,7 @@ end
 ### SD-WAN Configuration
 
 * *All existing configuration referencing an interface (or member interface in a zone) has to be removed before assigning the member interface*
+* TWAMP is a very accurate measure of link health, but requires more configuration overhead than simple ICMP type health checks. Your milage may vary.
 
 ```ruby
 config system sdwan
@@ -340,15 +351,15 @@ config system sdwan
             set interface "spoke-isp1-p1"
             set zone "overlay-vpn"
             set status enable
-            [set cost]
-            [set priority]
+            [set cost] # This is used with SD-WAN rules and can influence the routing of traffic.
+            set priority 10 # This is used with SD-WAN rules and can influence the routing of traffic.
         next
         edit 4
             set interface "spoke-isp2-p1"
             set zone "overlay-vpn"
             set status enable
-            [set cost]
-            [set priority]
+            [set cost] # This is used with SD-WAN rules and can influence the routing of traffic.
+            set priority 10 # This is used with SD-WAN rules and can influence the routing of traffic.
         next
     end
     config health-check
@@ -382,6 +393,21 @@ config system sdwan
     end
 end
 ```
+
+### Static Routes
+
+Default route to 0.0.0.0/0 includes both underlay interfaces and overlay interfaces via zones. In order for SD-WAN rules to direct traffic, there has to be an existing route (or routes) in the active routing table (`get router info routing-table all`)
+
+```ruby
+config router static
+    edit 1
+        set status enable
+        set dst 0.0.0.0 0.0.0.0
+        set distance 1
+        set comment "default static route for internet access"
+        set sdwan-zone "underlay-dia" "overlay-vpn"
+    next
+end
 
 ### BGP Routing
 
@@ -497,6 +523,7 @@ config firewall policy
         set dstaddr "r1-s1"
         set schedule "always"
         set service "ALL"
+        set tcp-session-without-syn all # This is necessary for cross-FTG sessions in dual-hub or ADVPN; disables stateful inspection on traffic matching this rule.
         set action accept
         set logtraffic all
     next
