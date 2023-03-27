@@ -315,11 +315,17 @@ The tunnel interfaces won't display their assigned IP address in the GUI or when
 config system interface
     edit "spoke-isp1-p1"
         set type tunnel
-        set allowaccess ping twamp # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
+        set allowaccess ping probe-response # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
     next
     edit "spoke-isp2-p1"
         set type tunnel
-        set allowaccess ping twamp # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
+        set allowaccess ping probe-response # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
+    next
+    edit "spoke-loopback"
+        set vdom "root" # This has to be entered or else it will not take
+        set type loopback
+        set ip 10.0.1.1 255.255.255.0 # This should be in the network range advertised by the Hub via BGP
+        set allowaccess ping  probe-response
     next
 end
 ```
@@ -430,6 +436,7 @@ config router static
         set sdwan-zone "underlay-dia" "overlay-vpn"
     next
 end
+```
 
 ### BGP Routing
 
@@ -455,7 +462,7 @@ config router bgp
     end
     config network
         edit 1
-            set prefix <ipv4 network> # Whatver spoke subnets that you want to advertise; not a summary address or default-route
+            set prefix 10.0.1.0 255.255.255.0 # Whatver spoke subnets that you want to advertise; not a summary address or default-route
         next
         edit 2
             set prefix <ipv4 network> # Whatver spoke subnets that you want to advertise; not a summary address or default-route
