@@ -2,6 +2,7 @@
 
 * This template was created to be run against FortiOS 7.2.x
 * *With vpn algoritihms recommendations from NSA PP-22-0266 Mar 2022 ver 1.0*
+* __Seriously re-consider using TWAMP at all in this thing__
 
 ## Hub Configuration
 
@@ -195,9 +196,12 @@ end
 
 ### Firewall Policies for SD-WAN Spokes
 
-In a production network, you would want to tighten these firewall policies down to necessary services and apply appropriate security profiles.
+*Before* configuring firewall policies where you have to reference interfaces, if you plan to use SD-WAN on the Hub down the road, configure that first before continuing here! In a production network, you would want to tighten these firewall policies down to necessary services and apply appropriate security profiles.
 
 ```ruby
+config system settings
+    set tcp-session-without-syn enable # This makes it so that you can enable on a per-firewall rule basis
+end
 config firewall policy
     edit 100
         set comment "allow spoke sites to loopback-hub for SD-WAN health check"
@@ -316,6 +320,24 @@ config system interface
     edit "spoke-isp2-p1"
         set type tunnel
         set allowaccess ping twamp # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
+    next
+end
+```
+
+### FortiGate as TWAMP Server for SD-WAN Health Check
+
+```ruby
+config system probe-response
+    set mode twamp
+    set security-mode authentication # this may need to be adjusted if not doing control and just default test from spoke
+    set password "fortinet" # this password needs to match the spoke client
+end # prompt that the daemon will restart, must click 'y' to continue
+
+config firewall service custom
+    edit "TWAMP"
+        set category "Network Services"
+        set udp-portrange 8008
+        set tcp-portrange 862
     next
 end
 ```
@@ -467,7 +489,7 @@ config firewall addrgrp
     edit "spoke-tunnels"
         set member spoke-tunnels-isp1 spoke-tunnels-isp2
     next
-    edit "region-spokes" # should be each spoke subnet within region that could traverse thru hub
+    edit "region-spokes" # should be each spoke subnet within region that could traverse thru hub *excluding* your the local spoke subnet
         set member r1-s1 r1-s2
     next
 end
@@ -479,6 +501,18 @@ end
 ```ruby
 config firewall policy
     edit 100
+        set comment "allow hub and spoke sites to loopback-spoke for SD-WAN health check"
+        set name "sdwan_advpn_to_loopback"
+        set srcint "overlay-vpn"
+        set dstint "loopback-spoke"
+        set srcaddr "spoke-tunnels"
+        set dstaddr "all"
+        set schedule "always"
+        set service "ALL_ICMP" "TWAMP"
+        set action accept
+        set logtraffic all # Maybe ok on the hub side since there's no SD-WAN SLA log on this end
+    next
+    edit 101
         set comment "allow spoke site to hub subnets"
         set name "sdwan_spoke_to_hub"
         set srcint <int towards core>
@@ -490,7 +524,7 @@ config firewall policy
         set action accept
         set logtraffic all
     next
-    edit 101
+    edit 102
         set comment "allow hub subnets to spoke site"
         set name "sdwan_hub_to_spoke"
         set srcint "overlay-vpn"
@@ -502,7 +536,7 @@ config firewall policy
         set action accept
         set logtraffic all
     next
-    edit 102
+    edit 103
         set comment "allow spoke to spoke traffic via advpn"
         set name "sdwan_advpn_oubound"
         set srcint <int towards core>
@@ -514,7 +548,7 @@ config firewall policy
         set action accept
         set logtraffic all
     next
-    edit 103
+    edit 104
         set comment "allow spoke to spoke traffic via advpn"
         set name "sdwan_advpn_inbound"
         set srcint "overlay-vpn"

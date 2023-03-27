@@ -93,7 +93,7 @@ config router community-list
                 set action permit
                 set match "65000:1"
             next
-        next
+        end
     next
     edit "65000:2_cl"
         config rule
@@ -101,7 +101,7 @@ config router community-list
                 set action permit
                 set match "65000:2"
             next
-        next
+        end
     next
     edit "65000:5000_cl"
         config rule
@@ -109,7 +109,7 @@ config router community-list
                 set action permit
                 set match "65000:5000"
             next
-        next
+        end
     next
 end
 
@@ -164,7 +164,7 @@ config system sdwan
             [set cost] # Used if using a cost based Performance SLA
         next
         edit 2
-            set interface "hub-isp1-p1"
+            set interface "hub-isp2-p1"
             set zone "overlay-vpn"
             set status enable
             [set cost] # Used if using a cost based Performance SLA
@@ -173,15 +173,13 @@ config system sdwan
     config service
         edit 1
             set name "hub_to_spoke_isp1"
-            set route-tag 1
-            set src "all"
-            set priority-members 1
+            set route-tag 1 # Remember, if there is no matching route-tag, this rule isn't a match and next service rule gets evaluated
+            set priority-members 1 # As long as route-tag matches, this interface will always be used
         next
         edit 2
             set name "hub_to_spoke_isp2"
-            set route-tag 2
-            set src "all"
-            set priority-members 2
+            set route-tag 2 # Remember, if there is no matching route-tag, this rule isn't a match and next service rule gets evaluated
+            set priority-members 2 # As long as route-tag matches, this interface will always be used
         next
     end
 end
