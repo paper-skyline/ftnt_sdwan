@@ -22,7 +22,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device disable # The hub is not beind a NAT device
-        set network-id 1
+        set network-id 1 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub *This didn't take until after saving and coming back in*
@@ -42,7 +42,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device disable # The hub is not beind a NAT device
-        set network-id 2
+        set network-id 2 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub
@@ -257,7 +257,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
-        set network-id 1
+        set network-id 1 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # Dynamic routes will be received from the Hub via BGP
@@ -276,7 +276,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
-        set network-id 2
+        set network-id 2 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # Dynamic routes will be received from the Hub via BGP
