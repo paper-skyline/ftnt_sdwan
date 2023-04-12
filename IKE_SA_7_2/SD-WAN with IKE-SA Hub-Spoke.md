@@ -2,8 +2,9 @@
 
 * This template was created to be run against FortiOS 7.2.x
 * *With vpn algoritihms recommendations from NSA PP-22-0266 Mar 2022 ver 1.0*
-* This is a cleaner, and more much scalable, method of establishing SD-WAN shortcuts between Spokes while continuing the best practice of using BGP community tags to signal the preferred return tunnel path from Spoke to Hub. The same 
+* This is a cleaner, and more much scalable, method of establishing SD-WAN shortcuts between Spokes when compared to ADVPN with BGP Route Reflection. The hub can additionally use BGP communities and SD-WAN to remain sticky with the path prefered by the spoke.
 * Instead of relying on BGP Route Reflection from the Hubs to Spokes, along with sharing a full BGP route table to every Spoke, this method relies on Spokes using IKE Security Association definitions within the IKE Phase II process to advertise local routes. The Hub then brokers shortcuts between Spokes that use static routes between each other instead of BGP routes.
+* The downside is that there is a much heavier dependency on getting address object and address object groups up to date and synchronized throughout the deployment.
 
 ## Hub Configuration
 
