@@ -3,6 +3,20 @@
 * This template was created to be run against FortiOS 7.2.x
 * *With vpn algoritihms recommendations from NSA PP-22-0266 Mar 2022 ver 1.0*
 * __Seriously re-consider using TWAMP at all in this thing__
+* Some of these config statements have to be entered in a specific order before subsequent command options are available. For example, `set ike-version 2` must be set before defining IKE proposals and DHGRP proposals.
+
+## Useful Debug Commands
+
+`get vpn ipsec tunnel summary` # This command will show you information about VPN tunnels that have completed phase 1 and phase 2 negotiation
+`diag vpn ike gateway list name <tunnel-name>` # This command will show you the interface bindings, interface IP addresses, and phase 1 status (Established or Connecting)
+`diag sniffer packet any '<remote-peer-ip> and (port 500 or 4500)' 4 0 l` # This command will help determine if IKE and IPSEC traffic is being sent to the remote peer
+
+1. `diag vpn ike log-filter dst-addr4 <remote-peer-ip>`
+2. `diag debug console timestamp enable`
+3. `diag debug app ike -1`
+4. `diag debug enable`
+
+This series of commands can help you determine if there is a mismatch in IKE phase 1 or phase 2 proposals in addition to potential errors in PSK or certificates.
 
 ## Hub Configuration
 
