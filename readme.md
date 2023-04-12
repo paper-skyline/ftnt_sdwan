@@ -4,11 +4,13 @@ There are many different ways to configure SD-WAN and VPN tunnels based on your 
 
 ## Disclaimer
 
-These example configurations were a learning tool for me to figure out what works for what I was trying to do, what didn't work, and maybe even a little bit as to why. __*Use at your own risk*__. I make no claims that this is the best way, or even the correct way, to configure devices utilizing this technology. I encourage you to take the time to learn and try these things out youself and make your own judgements.
+__*Use at your own risk*__
+
+These example configurations were a learning tool for me to figure out what works for what I was trying to do, what didn't work, and maybe even a little bit as to why. I make no claims that this is the best way, or even the correct way, to configure devices utilizing this technology. What worked for me in a certain situation may not work for you, etc. I encourage you to take the time to learn and try these things out youself and make your own judgements.
 
 ## Resources
 
-[Foritnet 4-D Resources: Secure SD-WAN](https://docs.fortinet.com/4d-resources/SD-WAN)
-[Fortinet 4D-Demo: Secure SD-WAN](https://github.com/fortinet/4D-Demo/tree/main/4D-SDWAN)
-[ForiGate Administration Guide 7.2.4](https://docs.fortinet.com/document/fortigate/7.2.4/administration-guide/954635/getting-started)
-[Fortinet Training Institute: NSE 7 SD-WAN](https://training.fortinet.com/local/staticpage/view.php?page=library_sd-wan)
+* [Foritnet 4-D Resources: Secure SD-WAN](https://docs.fortinet.com/4d-resources/SD-WAN)
+* [Fortinet 4D-Demo: Secure SD-WAN](https://github.com/fortinet/4D-Demo/tree/main/4D-SDWAN)
+* [ForiGate Administration Guide 7.2.4](https://docs.fortinet.com/document/fortigate/7.2.4/administration-guide/954635/getting-started)
+* [Fortinet Training Institute: NSE 7 SD-WAN](https://training.fortinet.com/local/staticpage/view.php?page=library_sd-wan)
