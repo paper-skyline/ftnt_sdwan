@@ -269,14 +269,11 @@ end
 
 ```ruby
 config firewall address
-    edit "r1-s1-vlan1"
+    edit "r1-s1-vlan1" # define a subnet for each vlan within the spoke
         set subnet <ipv4 network>
     next
-    edit "r1-s1-vlan2"
+    edit "r1-s1-vlan2" # define a subnet for each vlan within the spoke
         set subnet <ipv4 network> 
-    next
-    edit "hub-subnets"
-        set subnet "10.10.255.0 255.255.255.0" # should match the bgp prefixes advertised to spokes
     next
 end
 
@@ -382,7 +379,7 @@ config system interface
     edit "spoke-loopback"
         set vdom "root" # This has to be entered or else it will not take
         set type loopback
-        set ip 10.0.1.1 255.255.255.0 # This should be in the network range advertised by the Hub via BGP
+        set ip 10.0.1.1 255.255.255.0 # This should be in the network range advertised by the spoke via BGP and IKE SA
         set allowaccess ping
     next
 end
