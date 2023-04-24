@@ -266,7 +266,7 @@ end
 ```ruby
 config vpn ipsec phase1-interface
     edit "spoke-isp1-p1"
-        set type static
+        set type static # This is the default
         set interface "wan1"
         set ike-version 2
         set peertype any
@@ -278,6 +278,7 @@ config vpn ipsec phase1-interface
         set dpd on-idle
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set auto-discovery-receiver enable # This will allow the spoke to learn ADVPN shortcuts to other spokes sent via the Hub
+        set auto-discovery-receiver dependent # This is on by default; causes child tunnels (ADVPN shortcuts) to be removed if the parent tunnel drops
         set remote-fw <public ipv4 for hub-isp1-p1>
         set psksecret <pwd> # If using psk this should match what is set on the Hub above
         [set certificate <signature>] # If using certificates for authentication instead of PSK
@@ -285,7 +286,7 @@ config vpn ipsec phase1-interface
         set network-overlay enable
     next
     edit "spoke-isp2-p1"
-        set typic static
+        set typic static # This is the default
         set interface "wan2"
         set ike-version 2
         set peertype any
@@ -297,6 +298,7 @@ config vpn ipsec phase1-interface
         set dpd on-idle
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set auto-discovery-receiver enable # This will allow the spoke to learn ADVPN shortcuts to other spokes sent via the Hub
+        set auto-discovery-receiver dependent # This is on by default; causes child tunnels (ADVPN shortcuts) to be removed if the parent tunnel drops
         set remote-fw <public ipv4 for hub-isp2-p1>
         set psksecret <pwd> # If using psk this should match what is set on the Hub above
         [set certificate <signature>] # If using certificates for authentication instead of PSK
@@ -464,12 +466,16 @@ config router bgp
     set graceful-restart enable
     config neighbor
         edit "169.254.1.253"
-            set advertisement-interval 1
+            set advertisement-interval 1 # Adjust as desired; goal is to speed up route convergence over defaults
+            set capability-graceful-restart enable
+            set soft-reconfiguration enable
             set link-down-failover enable
             set remote-as 65000
         next
         edit "169.254.2.253"
-            set advertisement-interval 1
+            set advertisement-interval 1 # Adjust as desired; goal is to speed up route convergence over defaults
+            set capability-graceful-restart enable
+            set soft-reconfiguration enable
             set link-down-failover enable
             set remote-as 65000
         next
