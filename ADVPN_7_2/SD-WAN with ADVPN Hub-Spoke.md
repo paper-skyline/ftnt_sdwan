@@ -11,9 +11,9 @@
 
 `diag vpn ike gateway list name <tunnel-name>` # This command will show you the interface bindings, interface IP addresses, and phase 1 status (Established or Connecting)
 
-`diag sniffer packet any '<remote-peer-ip> and (port 500 or 4500)' 4 0 l` # This command will help determine if IKE and IPSEC traffic is being sent to the remote peer
+`diag vpn ike gateway flush name <tunnel-name>` # This command will teardown and reset the IKE and IPSEC tunnels
 
-`diag vpn tunnel flush <tunnel-name>` # This command will teardown and reset the IKE and IPSEC tunnels
+`diag sniffer packet any '<remote-peer-ip> and (port 500 or 4500)' 4 0 l` # This command will help determine if IKE and IPSEC traffic is being sent to the remote peer
 
 1. `diag vpn ike log-filter dst-addr4 <remote-peer-ip>`
 2. `diag debug console timestamp enable`
