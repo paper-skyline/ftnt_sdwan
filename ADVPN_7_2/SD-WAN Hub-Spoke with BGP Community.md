@@ -2,6 +2,10 @@
 
 This document demonstrates how to use BGP community tags with Hub-Spoke SD-WAN connections to influence the hub's traffic path to the spoke. This alters the basic Hub-Spoke configuration where the Hub previously did not use SD-WAN, instead relying entirely on staying "sticky" for the return path to the spoke. The address objects, groups, and interfaces are based on the SD-WAN with _ADVPN Hub-Spoke document_.
 
+It is critically important to note that once the hub applies the `route-map in` to apply to inbound BGP routing updates from the SD-WAN neighbor group, any routes that are received that __do not__ match the criteria defined will be discarded and not brought into either the bgp routing table or the global routing table. In other words, for every new SD-WAN spoke site that advertises routes towards the hub, they will need to apply the same tagging scheme as prior sites in order to work without further adjusting BGP on the hub side.
+
+Again I would highly advise _against_ using TWAMP unless you know that's what you really want. ICMP is a _much_ easier health-check to work with.
+
 ## Spoke Configuration
 
 ### Route Maps and Access Lists
@@ -22,7 +26,7 @@ config router route-map
         config rule
             edit 1
                 set match-ip-address "acl-r1-s1"
-                set set-community "65000:1"
+                set set-community "65000:1" # This follows the community-list standard of "AS:tag"
             next
         end
     next
