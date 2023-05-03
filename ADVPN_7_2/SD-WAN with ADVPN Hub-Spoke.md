@@ -44,10 +44,10 @@ config vpn ipsec phase1-interface
         set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub *This didn't take until after saving and coming back in*
-        set auto-discovery-sender enable # Hub is going to be sending spokes ADVPN shortcut info
+        set auto-discovery-sender enable # Hub is going to be sending spokes ADVPN shortcut info. __This command is critical for ADVPN vs just regular hub-spoke approach__
         set dpd on-demand # only shows on full-config
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
-        set ipv4-start-ip 169.254.1.1 # The tunnel IP endpoint range doesn't need to be advertised in dynamic routing since it's a locally connected interface
+        set ipv4-start-ip 169.254.1.1 # The tunnel IP endpoint range doesn't need to be advertised in dynamic routing since it's a locally connected interface. In a production environment, you'd normally choose routable RFC1918 address space.
         set ipv4-end-ip 169.254.1.250
         set ipv4-netmask 255.255.255.0
         set psksecret <psk>
@@ -127,13 +127,15 @@ config router bgp
     set router-id <ipv4> # Best practice to set this; by default will take the highest loopback address if not defined
     set ibgp-multipath enable
     set additional-path enable
-    set additional-path-select 4 # This depends on the max number of tunnels between spoke and hub
+    set additional-path-select 4 # This depends on the max number of tunnels between spoke and hub and _is not_ the same as bgp max-paths (where typically limited to max 6 paths)
     set graceful-restart enable
     config neighbor-group # For greater routing control, you could split the tunnels into two (or more) different neighbor-groups
         edit "spoke-advpn"
             set link-down-failover enable
             set capability-graceful-restart enable
-            [set next-hop-self enable] # Not sure that this is really required
+            set next-hop-self enable # If the hub is also going to peer with eBGP neighbors, this is required.
+            set keep-alive-timer 1 # This is the minimum that can be set for BGP. Default is 60sec.
+            set holdtime-timer 3 # This is 3x the keep-alive and is the minimum for BGP. Default is 180sec.
             set additional-path both
             set adv-additional-path 4 # This depends on the max number of tunnels between spoke and hub
             set soft-reconfiguration enable
