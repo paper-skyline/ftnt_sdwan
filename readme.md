@@ -10,7 +10,7 @@ These example configurations were a learning tool for me to figure out what work
 
 ## Resources
 
-* [Foritnet 4-D Resources: Secure SD-WAN](https://docs.fortinet.com/4d-resources/SD-WAN)
+* [Fortinet 4-D Resources: Secure SD-WAN](https://docs.fortinet.com/4d-resources/SD-WAN)
 * [Fortinet 4D-Demo: Secure SD-WAN](https://github.com/fortinet/4D-Demo/tree/main/4D-SDWAN)
-* [ForiGate Administration Guide 7.2.4](https://docs.fortinet.com/document/fortigate/7.2.4/administration-guide/954635/getting-started)
+* [FortiGate Administration Guide 7.2.4](https://docs.fortinet.com/document/fortigate/7.2.4/administration-guide/954635/getting-started)
 * [Fortinet Training Institute: NSE 7 SD-WAN](https://training.fortinet.com/local/staticpage/view.php?page=library_sd-wan)
