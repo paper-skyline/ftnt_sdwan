@@ -1,7 +1,7 @@
 # SD-WAN with ADVPN Hub-Spoke Within Single Region
 
 * This template was created to be run against FortiOS 7.2.x
-* *With vpn algoritihms recommendations from NSA PP-22-0266 Mar 2022 ver 1.0*
+* *With vpn algorithms recommendations from NSA PP-22-0266 Mar 2022 ver 1.0*
 * __Seriously re-consider using TWAMP at all in this thing__
 * Some of these config statements have to be entered in a specific order before subsequent command options are available. For example, `set ike-version 2` must be set before defining IKE proposals and DHGRP proposals.
 
@@ -26,7 +26,7 @@ This series of commands can help you determine if there is a mismatch in IKE pha
 
 This template is written with the assumption that the hub will be a device that has a "wan1" and "wan2" interface and will use both of them for the SD-WAN underlay.
 
-In this configuration, there is no SD-WAN configuration on the hub. Traffic back to the spoke __should__ traverse the same path in reverse due to stickiness. The better approach is to supplement the hub-spoke approach with BGP community tags where the spoke is tagging its preferred path back to the hub to leverage __and then__ the Hub uses SD-WAN with those tags to select the prefered path to the spoke.
+In this configuration, there is no SD-WAN configuration on the hub. Traffic back to the spoke __should__ traverse the same path in reverse due to stickiness. The better approach is to supplement the hub-spoke approach with BGP community tags where the spoke is tagging its preferred path back to the hub to leverage __and then__ the Hub uses SD-WAN with those tags to select the preferred path to the spoke.
 
 Because you have to remove all configuration references to interfaces __before__ you configure SD-WAN, you should *strongly* consider configuring SD-WAN before continuing onwards on the Hub.
 
@@ -39,10 +39,10 @@ config vpn ipsec phase1-interface
         set interface "wan1"
         set ike-version 2
         set peertype any
-        set net-device disable # The hub is not beind a NAT device
+        set net-device disable # The hub is not behind a NAT device
         set network-id 1 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
-        set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub *This didn't take until after saving and coming back in*
         set auto-discovery-sender enable # Hub is going to be sending spokes ADVPN shortcut info. __This command is critical for ADVPN vs just regular hub-spoke approach__
         set dpd on-demand # only shows on full-config
@@ -59,10 +59,10 @@ config vpn ipsec phase1-interface
         set interface "wan2"
         set ike-version 2
         set peertype any
-        set net-device disable # The hub is not beind a NAT device
+        set net-device disable # The hub is not behind a NAT device
         set network-id 2 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
-        set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub
         set auto-discovery-sender enable # Hub is going to be sending spokes ADVPN shortcut info
         set dpd on-demand # only shows on full-config
@@ -79,13 +79,13 @@ end
 config vpn ipsec phase2-interface
     edit "hub-isp1-p2"
         set phase1name "hub-isp1-p1"
-        set proposal aes256-sha384 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
     next
     edit "hub-isp2-p2"
         set phase1name "hub-isp2-p1"
-        set proposal aes256-sha384 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
     next
 end
 ```
@@ -278,8 +278,8 @@ config vpn ipsec phase1-interface
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
         set network-id 1 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
-        set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # Dynamic routes will be received from the Hub via BGP
         set dpd on-idle
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
@@ -298,8 +298,8 @@ config vpn ipsec phase1-interface
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
         set network-id 2 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
-        set proposal aes256-sha384 # NSA recommnended setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # Dynamic routes will be received from the Hub via BGP
         set dpd on-idle
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
@@ -316,14 +316,14 @@ end
 config vpn ipsec phase2-interface
     edit "spoke-isp1-p2"
         set phase1name "spoke-isp1-p1"
-        set proposal aes256-sha384 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set auto-negotiate enable
     next
     edit "spoke-isp2-p2"
         set phase1name "spoke-isp2-p1"
-        set proposal aes256-sha384 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
-        set dhgrp 20 16 # NSA recommneded setting. This has to match spokes and both sides must be capable of supporting it.
+        set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
+        set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set auto-negotiate enable
     next
 end
@@ -488,10 +488,10 @@ config router bgp
     end
     config network
         edit 1
-            set prefix 10.0.1.0 255.255.255.0 # Whatver spoke subnets that you want to advertise; not a summary address or default-route
+            set prefix 10.0.1.0 255.255.255.0 # Whatever spoke subnets that you want to advertise; not a summary address or default-route
         next
         edit 2
-            set prefix <ipv4 network> # Whatver spoke subnets that you want to advertise; not a summary address or default-route
+            set prefix <ipv4 network> # Whatever spoke subnets that you want to advertise; not a summary address or default-route
         next
     end
 end
