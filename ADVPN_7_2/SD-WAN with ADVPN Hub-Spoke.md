@@ -1,9 +1,12 @@
 # SD-WAN with ADVPN Hub-Spoke Within Single Region
 
+*last updated 26 Feb 2024*
+
 * This template was created to be run against FortiOS 7.2.x
 * *With vpn algorithms recommendations from NSA PP-22-0266 Mar 2022 ver 1.0*
-* __Seriously re-consider using TWAMP at all in this thing__
+* __Seriously re-consider using TWAMP at all in this thing__ ICMP is the generally the best method to use for health checks, particularly with ADVPN connections, since the child tunnel will inherit the health check method from the parent tunnel.
 * Some of these config statements have to be entered in a specific order before subsequent command options are available. For example, `set ike-version 2` must be set before defining IKE proposals and DHGRP proposals.
+* Use of IKEv2 is best practice, which requires the use of either `peer-id` or the FTNT proprietary `network-id` option under IPSEC phase1 to differentiate between multiple VPN tunnel connections bound to the same interface. *For example, point-to-point VPN tunnels can be configured to use the same interface and should each be mutually exclusive.* If a client does not specify this option, the default behavior on the remote FortiGate is to select the first configured tunnel.
 
 ## Useful Debug Commands
 
@@ -13,20 +16,23 @@
 
 `diag vpn ike gateway flush name <tunnel-name>` # This command will teardown and reset the IKE and IPSEC tunnels
 
-`diag sniffer packet any '<remote-peer-ip> and (port 500 or 4500)' 4 0 l` # This command will help determine if IKE and IPSEC traffic is being sent to the remote peer
+`diag sniffer packet any 'host <remote-peer-ip> and (port 500 or 4500)' 4 0 l` # This command will help determine if IKE and IPSEC traffic is being sent to the remote peer
 
-1. `diag vpn ike log-filter dst-addr4 <remote-peer-ip>`
+1. `diag debug reset`
 2. `diag debug console timestamp enable`
-3. `diag debug app ike -1`
-4. `diag debug enable`
+3. `diag vpn ike log-filter dst-addr4 <remote-peer-ip>`
+4. `diag debug app ike -1`
+5. `diag debug enable`
+*Capture and review terminal output*
+6. `diag debug disable`
 
-This series of commands can help you determine if there is a mismatch in IKE phase 1 or phase 2 proposals in addition to potential errors in PSK or certificates.
+This series of commands can help you determine if there is a mismatch in IKE phase 1 or phase 2 proposals in addition to potential errors in PSK or PKI certificates.
 
 ## Hub Configuration
 
-This template is written with the assumption that the hub will be a device that has a "wan1" and "wan2" interface and will use both of them for the SD-WAN underlay.
+This template is written with the assumption that the hub will be a device that has a "wan1" and "wan2" interface and will use both of them for the SD-WAN underlay. Furthermore, the underlay transport types between the hub and spokes are assumed to be the same, e.g. DIA to DIA or MPLS to MPLS. This is important to note since a DIA underlay can not form an IPSEC VPN to an MPLS circuit.
 
-In this configuration, there is no SD-WAN configuration on the hub. Traffic back to the spoke __should__ traverse the same path in reverse due to stickiness. The better approach is to supplement the hub-spoke approach with BGP community tags where the spoke is tagging its preferred path back to the hub to leverage __and then__ the Hub uses SD-WAN with those tags to select the preferred path to the spoke.
+In this configuration, there is no SD-WAN configuration on the hub. Return traffic from the hub back to the spoke __should__ traverse the same overlay in order to maintain stickiness and avoid asynchronous routing issues or RPF checks. One approach to ensure this takes place correctly is to supplement the hub-spoke approach with BGP route-tags or communities where the spoke is signaling to the hub its preferred overlay transport path for return traffic. The Hub can then use these tags or communities with SD-WAN policies to select the preferred path to the spoke. Other variations of this method exist, with the most recent iteration involving BGP routing over loopback addresses and [embedding SD-WAN SLA information in the ICMP probes sent from a spoke to a hub](https://docs.fortinet.com/document/fortigate/7.2.7/administration-guide/848259).
 
 Because you have to remove all configuration references to interfaces __before__ you configure SD-WAN, you should *strongly* consider configuring SD-WAN before continuing onwards on the Hub.
 
@@ -40,7 +46,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device disable # The hub is not behind a NAT device
-        set network-id 1 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
+        set network-id 1 # VPN Gateway Network ID; Hub/Spoke must match, can be 0-255
         set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub *This didn't take until after saving and coming back in*
@@ -60,7 +66,7 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device disable # The hub is not behind a NAT device
-        set network-id 2 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
+        set network-id 2 # VPN Gateway Network ID; Hub/Spoke must match, can be 0-255
         set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub
@@ -119,7 +125,7 @@ end
 
 ### BGP Routing
 
-*iBGP is used between hub and spokes for SD-WAN*
+*iBGP is used between hub and spokes for SD-WAN within a single region* This method is known as **BGP Routing Per Overlay** which requires the use of BGP addtional-path and ibgp-multipath. This is in comparison to the relatively newer method of **BGP Routing on Loopback** which has different configurations and considerations.
 
 ```ruby
 config router bgp
