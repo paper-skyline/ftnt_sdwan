@@ -44,9 +44,8 @@ config vpn ipsec phase1-interface
         set type dynamic
         set interface "wan1"
         set ike-version 2
-        set peertype any
-        set net-device disable # The hub is not behind a NAT device
-        set network-id 1 # VPN Gateway Network ID; Hub/Spoke must match, can be 0-255
+        set peertype any # default
+        set net-device disable # The hub is not behind a NAT device; default
         set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub *This didn't take until after saving and coming back in*
@@ -59,6 +58,7 @@ config vpn ipsec phase1-interface
         set psksecret <psk>
         [set certificate <signature>] # If using certificates for authentication instead of PSK
         set network-overlay enable
+        set network-id 1 # VPN Gateway Network ID; Hub/Spoke must match, can be 0-255
     next
     edit "hub-isp2-p1"
         set type dynamic
@@ -66,7 +66,6 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device disable # The hub is not behind a NAT device
-        set network-id 2 # VPN Gateway Network ID; Hub/Spoke must match, can be 0-255
         set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set add-route disable # We do not want to add spoke routes to the hub
@@ -79,6 +78,7 @@ config vpn ipsec phase1-interface
         set psksecret <psk>
         [set certificate <signature>] # If using certificates for authentication instead of PSK
         set network-overlay enable
+        set network-id 2 # VPN Gateway Network ID; Hub/Spoke must match, can be 0-255
     next
 end
 
@@ -130,7 +130,7 @@ end
 ```ruby
 config router bgp
     set as 65000
-    set router-id <ipv4> # Best practice to set this; by default will take the highest loopback address if not defined
+    set router-id <ipv4> # Best practice to set this to loopback address; by default will take the highest loopback address if not defined
     set ibgp-multipath enable
     set additional-path enable
     set additional-path-select 4 # This depends on the max number of tunnels between spoke and hub and _is not_ the same as bgp max-paths (where typically limited to max 6 paths)
@@ -139,7 +139,7 @@ config router bgp
         edit "spoke-advpn"
             set link-down-failover enable
             set capability-graceful-restart enable
-            set next-hop-self enable # If the hub is also going to peer with eBGP neighbors, this is required.
+            #set next-hop-self enable # If the hub is also going to peer with eBGP neighbors, this is required.
             set keep-alive-timer 1 # This is the minimum that can be set for BGP. Default is 60sec.
             set holdtime-timer 3 # This is 3x the keep-alive and is the minimum for BGP. Default is 180sec.
             set additional-path both
@@ -200,7 +200,7 @@ config firewall address
         set subnet 169.254.2.0 255.255.255.0
     next
     edit "hub-subnets"
-        set subnet 10.10.255.0 255.255.255.0 # should match the bgp prefixes advertised to spokes
+        set subnet 10.10.255.0 255.255.255.0 # should match the bgp prefixes advertised to spokes; inclusive of loopback interface above
     next
     edit "r1-s1" # define a subnet for each spoke in the region
         set subnet <ipv4 network> 
@@ -283,19 +283,19 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
-        set network-id 1 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
         set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
-        set add-route disable # Dynamic routes will be received from the Hub via BGP
         set dpd on-idle
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set auto-discovery-receiver enable # This will allow the spoke to learn ADVPN shortcuts to other spokes sent via the Hub
-        set auto-discovery-receiver dependent # This is on by default; causes child tunnels (ADVPN shortcuts) to be removed if the parent tunnel drops
-        set remote-fw <public ipv4 for hub-isp1-p1>
+        set auto-discovery-shortcuts dependent # This is on by default; causes child tunnels (ADVPN shortcuts) to be removed if the parent tunnel drops
+        set remote-gw <public ipv4 for hub-isp1-p1>
         set psksecret <pwd> # If using psk this should match what is set on the Hub above
         [set certificate <signature>] # If using certificates for authentication instead of PSK
         [set dpd-retryinterval 5]
         set network-overlay enable
+        set network-id 1 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
+        set add-route disable # Dynamic routes will be received from the Hub via BGP
     next
     edit "spoke-isp2-p1"
         set typic static # This is the default
@@ -303,19 +303,19 @@ config vpn ipsec phase1-interface
         set ike-version 2
         set peertype any
         set net-device enable # The spoke side may be behind a NAT device
-        set network-id 2 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
         set proposal aes256-sha384 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
         set dhgrp 20 16 # NSA recommended setting. This has to match spokes and both sides must be capable of supporting it.
-        set add-route disable # Dynamic routes will be received from the Hub via BGP
         set dpd on-idle
         set mode-cfg enable # Purpose of this command and the following ipv4 commands is to auto-assign the remote p1 virtual interfaces ip
         set auto-discovery-receiver enable # This will allow the spoke to learn ADVPN shortcuts to other spokes sent via the Hub
-        set auto-discovery-receiver dependent # This is on by default; causes child tunnels (ADVPN shortcuts) to be removed if the parent tunnel drops
+        set auto-discovery-shortcuts dependent # This is on by default; causes child tunnels (ADVPN shortcuts) to be removed if the parent tunnel drops
         set remote-fw <public ipv4 for hub-isp2-p1>
         set psksecret <pwd> # If using psk this should match what is set on the Hub above
         [set certificate <signature>] # If using certificates for authentication instead of PSK
         [set dpd-retryinterval 5]
         set network-overlay enable
+        set network-id 2 # VPN Gateway Network ID; Hub/Spoke should match, can be 0-255
+        set add-route disable # Dynamic routes will be received from the Hub via BGP
     next
 end
 
@@ -342,11 +342,11 @@ The tunnel interfaces won't display their assigned IP address in the GUI or when
 ```ruby
 config system interface
     edit "spoke-isp1-p1"
-        set type tunnel
+        set type tunnel # this is default from phase2 setting
         set allowaccess ping probe-response # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
     next
     edit "spoke-isp2-p1"
-        set type tunnel
+        set type tunnel # this is default from phase2 setting
         set allowaccess ping probe-response # ADVPN shortcut paths will open child-health checks bound to these interfaces dynamically
     next
     edit "spoke-loopback"
@@ -372,6 +372,37 @@ config firewall service custom
         set category "Network Services"
         set udp-portrange 8008
         set tcp-portrange 862
+    next
+end
+```
+
+### Firewall Address Objects for SD-WAN Overlay
+
+```ruby
+config firewall address
+    edit "spoke-tunnels-isp1"
+        set subnet 169.254.1.0 255.255.255.0
+    next
+    edit "spoke-tunnels-isp2"
+        set subnet 169.254.2.0 255.255.255.0
+    next
+    edit "hub-subnets"
+        set subnet "10.10.255.0 255.255.255.0" # should match the bgp prefixes advertised to spokes
+    next
+    edit "r1-s1" # define a subnet for each spoke in the region
+        set subnet <ipv4 network> 
+    next
+    edit "r1-s2" # define a subnet for each spoke in the region
+        set subnet <ipv4 network>
+    next
+end
+
+config firewall addrgrp
+    edit "spoke-tunnels"
+        set member spoke-tunnels-isp1 spoke-tunnels-isp2
+    next
+    edit "region-spokes" # should be each spoke subnet within region that could traverse thru hub *excluding* your the local spoke subnet
+        set member r1-s1 r1-s2
     next
 end
 ```
@@ -452,7 +483,7 @@ end
 
 ### Static Routes
 
-Default route to 0.0.0.0/0 includes both underlay interfaces and overlay interfaces via zones. In order for SD-WAN rules to direct traffic, there has to be an existing route (or routes) in the active routing table (`get router info routing-table all`)
+Default route to 0.0.0.0/0 includes both underlay interfaces and overlay interfaces via zones. In order for SD-WAN rules to direct traffic, there has to be an existing route (or routes) in the active routing table for each SD-WAN zone (`get router info routing-table all`)
 
 ```ruby
 config router static
@@ -502,38 +533,6 @@ config router bgp
     end
 end
 ```
-
-### Firewall Address Objects for SD-WAN Overlay
-
-```ruby
-config firewall address
-    edit "spoke-tunnels-isp1"
-        set subnet 169.254.1.0 255.255.255.0
-    next
-    edit "spoke-tunnels-isp2"
-        set subnet 169.254.2.0 255.255.255.0
-    next
-    edit "hub-subnets"
-        set subnet "10.10.255.0 255.255.255.0" # should match the bgp prefixes advertised to spokes
-    next
-    edit "r1-s1" # define a subnet for each spoke in the region
-        set subnet <ipv4 network> 
-    next
-    edit "r1-s2" # define a subnet for each spoke in the region
-        set subnet <ipv4 network>
-    next
-end
-
-config firewall addrgrp
-    edit "spoke-tunnels"
-        set member spoke-tunnels-isp1 spoke-tunnels-isp2
-    next
-    edit "region-spokes" # should be each spoke subnet within region that could traverse thru hub *excluding* your the local spoke subnet
-        set member r1-s1 r1-s2
-    next
-end
-```
-
 
 ### Firewall Policies for SD-WAN
 
